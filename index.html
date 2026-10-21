@@ -234,6 +234,9 @@
     }
 
     recipientName = name;
+    try {
+      history.replaceState(null, '', '?to=' + encodeURIComponent(name));
+    } catch (err) {}
     startScreen.style.display = 'none';
     heartScreen.style.display = 'block';
 
@@ -422,7 +425,14 @@
     animationId = requestAnimationFrame(draw);
   }
 
-  nameInput.focus();
+  // If the link has a name in it (?to=Name), skip the input screen and show the heart straight away
+  const linkName = new URLSearchParams(window.location.search).get('to');
+  if (linkName && linkName.trim()) {
+    nameInput.value = linkName.trim().slice(0, 25);
+    start();
+  } else {
+    nameInput.focus();
+  }
 </script>
 </body>
 </html>
