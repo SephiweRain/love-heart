@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <title>I Love You</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -10,6 +10,7 @@
       background: #060208;
       overflow: hidden;
       height: 100vh;
+      height: 100dvh;
       font-family: system-ui, -apple-system, sans-serif;
       color: white;
     }
@@ -80,9 +81,8 @@
     /* ===== HEART SCREEN ===== */
     #heart-screen {
       display: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
+      position: fixed;
+      inset: 0;
     }
 
     canvas {
@@ -92,7 +92,7 @@
 
     #dedication {
       position: absolute;
-      bottom: 90px;
+      bottom: calc(90px + env(safe-area-inset-bottom, 0px));
       left: 0;
       right: 0;
       text-align: center;
@@ -111,7 +111,7 @@
     /* Bottom buttons */
     .bottom-buttons {
       position: absolute;
-      bottom: 24px;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
       left: 0;
       right: 0;
       display: flex;
