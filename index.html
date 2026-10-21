@@ -307,10 +307,14 @@
     const pad = ((yMax - yMin) - rows * rowH) / 2;
     let idx = 0;
 
-    const measure = (text, size) => {
-      ctx.font = `bold ${size}px Arial, sans-serif`;
-      return ctx.measureText(text).width;
-    };
+    // measure every phrase at every size once
+    const options = [];
+    for (const text of PHRASES) {
+      for (const size of sizes) {
+        ctx.font = `bold ${size}px Arial, sans-serif`;
+        options.push({ text, size, w: ctx.measureText(text).width });
+      }
+    }
 
     for (let r = 0; r < rows; r++) {
       const y = yMax - pad - rowH * (r + 0.5);
@@ -327,34 +331,40 @@
       xs.sort((a, b) => a - b);
 
       for (let s = 0; s + 1 < xs.length; s += 2) {
-        const left = xs[s] + 6;
-        const right = xs[s + 1] - 6;
+        const left = xs[s] + 4;
+        const right = xs[s + 1] - 4;
         const avail = right - left;
-        if (avail < 30) continue;
+        if (avail < 20) continue;
 
-        // pick phrases that fit
         const items = [];
+        const usedTexts = new Set();
         let used = 0;
-        let fails = 0;
-        while (fails < 6) {
-          const text = PHRASES[idx++ % PHRASES.length];
-          const order = sizes.slice().sort(() => Math.random() - 0.5);
-          let placed = false;
-          for (const size of order) {
-            const w = measure(text, size);
-            const need = used + w + (items.length ? GAP : 0);
-            if (need <= avail) {
-              items.push({ text, size, w });
-              used = need;
-              placed = true;
-              break;
-            }
+
+        while (true) {
+          const room = avail - used - (items.length ? GAP : 0);
+          const fits = options.filter(o => o.w <= room && !usedTexts.has(o.text));
+          if (!fits.length) break;
+
+          // prefer the next phrase in the list (for variety), else the widest one that fits
+          const wanted = PHRASES[idx % PHRASES.length];
+          let pick = fits.filter(o => o.text === wanted);
+          if (pick.length) {
+            idx++;
+            pick = pick[Math.floor(Math.random() * pick.length)];
+          } else {
+            const maxW = Math.max(...fits.map(o => o.w));
+            const best = fits.filter(o => o.w === maxW);
+            pick = best[Math.floor(Math.random() * best.length)];
+            idx++;
           }
-          fails = placed ? 0 : fails + 1;
+
+          items.push(pick);
+          usedTexts.add(pick.text);
+          used += pick.w + (items.length > 1 ? GAP : 0);
         }
         if (!items.length) continue;
 
-        // stretch the gaps so the row touches both heart edges
+        // spread the leftover space so the row touches both heart edges
         const free = avail - used;
         const gap = items.length > 1 ? GAP + free / (items.length - 1) : 0;
         let x = left + (items.length === 1 ? free / 2 : 0);
