@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>I Love You</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060208;
+      overflow: hidden;
+      height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: white;
+    }
+
+    /* ===== INPUT SCREEN ===== */
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #060208;
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+
+    #start-screen h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    #start-screen p {
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 30px;
+      font-size: 1rem;
+    }
+
+    #name-input {
+      width: 100%;
+      max-width: 320px;
+      padding: 14px 18px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.08);
+      color: white;
+      outline: none;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #name-input::placeholder {
+      color: rgba(255,255,255,0.35);
+    }
+
+    #name-input:focus {
+      background: rgba(255,255,255,0.12);
+    }
+
+    #create-btn {
+      padding: 14px 36px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #ff2d55, #ff6b8a);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    #create-btn:hover { transform: scale(1.04); }
+    #create-btn:active { transform: scale(0.97); }
+
+    /* ===== HEART SCREEN ===== */
+    #heart-screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+    }
+
+    #dedication {
+      position: absolute;
+      bottom: 90px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 1.35rem;
+      font-weight: 500;
+      color: rgba(255, 180, 190, 0.95);
+      opacity: 0;
+      transition: opacity 1.4s ease;
+      pointer-events: none;
+    }
+
+    #dedication.show {
+      opacity: 1;
+    }
+
+    /* Bottom buttons */
+    .bottom-buttons {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      opacity: 0;
+      transition: opacity 0.8s ease 1.2s;
+    }
+
+    .bottom-buttons.show {
+      opacity: 1;
+    }
+
+    .action-btn {
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 50px;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .action-btn:hover {
+      background: rgba(255,255,255,0.18);
+      transform: scale(1.03);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #ff2d55, #ff6b8a);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="start-screen">
+  <h1>Create a Love Heart</h1>
+  <p>Who is this for?</p>
+  <input type="text" id="name-input" placeholder="Enter their name..." maxlength="25" autocomplete="off">
+  <button id="create-btn">Create Heart</button>
+</div>
+
+<!-- Heart Screen -->
+<div id="heart-screen">
+  <canvas id="c"></canvas>
+  <div id="dedication"></div>
+
+  <div class="bottom-buttons" id="bottom-buttons">
+    <button class="action-btn" id="restart-btn">Change Name</button>
+    <button class="action-btn primary" id="share-btn">Share this</button>
+  </div>
+</div>
+
+<script>
+  const startScreen = document.getElementById('start-screen');
+  const heartScreen = document.getElementById('heart-screen');
+  const nameInput = document.getElementById('name-input');
+  const createBtn = document.getElementById('create-btn');
+  const dedication = document.getElementById('dedication');
+  const bottomButtons = document.getElementById('bottom-buttons');
+  const restartBtn = document.getElementById('restart-btn');
+  const shareBtn = document.getElementById('share-btn');
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  let recipientName = "";
+  let animationId = null;
+
+  createBtn.addEventListener('click', start);
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') start();
+  });
+
+  restartBtn.addEventListener('click', () => {
+    if (animationId) cancelAnimationFrame(animationId);
+    heartScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+    dedication.classList.remove('show');
+    bottomButtons.classList.remove('show');
+    nameInput.value = recipientName;
+    nameInput.focus();
+    nameInput.select();
+  });
+
+  shareBtn.addEventListener('click', async () => {
+    const shareData = {
+      title: `A love heart for ${recipientName}`,
+      text: `I made this for you`,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        shareBtn.textContent = "Link copied!";
+        setTimeout(() => {
+          shareBtn.textContent = "Share this";
+        }, 2000);
+      } catch (err) {
+        alert("Copy this link:\n" + window.location.href);
+      }
+    }
+  });
+
+  function start() {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      nameInput.style.border = "1px solid #ff4d6d";
+      setTimeout(() => nameInput.style.border = "none", 1500);
+      return;
+    }
+
+    recipientName = name;
+    startScreen.style.display = 'none';
+    heartScreen.style.display = 'block';
+
+    setTimeout(() => {
+      dedication.textContent = `For ${recipientName}`;
+      dedication.classList.add('show');
+      bottomButtons.classList.add('show');
+    }, 1600);
+
+    resize();
+    startTime = performance.now();
+    animationId = requestAnimationFrame(draw);
+  }
+
+  const PHRASES = [
+    "I love you", "Seni seviyorum", "Te amo", "Je t'aime",
+    "Ich liebe dich", "Ti amo", "Eu te amo", "Я тебя люблю",
+    "사랑해", "愛してる", "我爱你", "मैं तुमसे प्यार करता हूँ",
+    "Σ' αγαπώ", "Ik hou van jou", "Jag älskar dig", "Kocham cię",
+    "ฉันรักเธอ", "Anh yêu em", "Aku cinta kamu", "Я тебе кохаю",
+    "Te quiero", "Mahal kita", "Nakupenda", "Szeretlek",
+    "Volim te", "Miluji tě", "Të dua", "Ma armastan sind",
+    "Aš tave myliu", "Es mīlu tevi", "Ég elska þig", "Rwy'n dy garu di"
+  ];
+
+  let W, H, phrases = [], startTime;
+  const SCALE = 15.2;
+  const OFFSET_Y = 16;
+
+  function resize() {
+    W = Math.min(window.innerWidth, 900);
+    H = Math.min(window.innerHeight - 110, 800);
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    build();
+  }
+
+  function heart(t) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+    return { x: x * SCALE, y: -y * SCALE + OFFSET_Y };
+  }
+
+  function build() {
+    phrases = [];
+    const poly = [];
+    for (let i = 0; i < 580; i++) {
+      poly.push(heart(2 * Math.PI * i / 580));
+    }
+
+    const yMax = Math.max(...poly.map(p => p.y));
+    const yMin = Math.min(...poly.map(p => p.y));
+    const sizes = [11, 12, 13, 14];
+    const rowH = 20.5;
+    let y = yMax - rowH / 2;
+    let idx = 0;
+
+    const measure = (text, size) => {
+      ctx.font = `bold ${size}px Arial, sans-serif`;
+      return ctx.measureText(text).width;
+    };
+
+    while (y > yMin + rowH / 2) {
+      const xs = [];
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i];
+        const b = poly[(i + 1) % poly.length];
+        if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) {
+          const t = (y - a.y) / (b.y - a.y);
+          xs.push(a.x + t * (b.x - a.x));
+        }
+      }
+      xs.sort((a, b) => a - b);
+
+      for (let s = 0; s + 1 < xs.length; s += 2) {
+        let left = xs[s] + 5;
+        let right = xs[s + 1] - 5;
+        let x = left + Math.random() * 5;
+
+        while (x < right) {
+          const text = PHRASES[idx % PHRASES.length];
+          idx++;
+          const size = sizes[Math.floor(Math.random() * sizes.length)];
+          const w = measure(text, size);
+          if (x + w > right) break;
+
+          const rad = Math.min(1, Math.hypot(x / (16 * SCALE), (y - (yMax + yMin) / 2) / (14 * SCALE)));
+          const r = 0.55 + 0.45 * rad;
+          const g = 0.02 + 0.10 * rad;
+          const b = 0.08 + 0.14 * rad;
+
+          phrases.push({
+            x: x + w / 2,
+            y,
+            text,
+            size,
+            color: `rgb(${Math.floor(r*255)},${Math.floor(g*255)},${Math.floor(b*255)})`
+          });
+          x += w + 6;
+        }
+      }
+      y -= rowH;
+    }
+
+    phrases.sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y));
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, W, H);
+    const elapsed = now - startTime;
+    const totalDuration = 7800;
+
+    phrases.forEach((p, i) => {
+      const appearAt = (i / phrases.length) * totalDuration;
+      const local = Math.max(0, Math.min(1, (elapsed - appearAt) / 480));
+      if (local <= 0) return;
+
+      const ease = 1 - Math.pow(1 - local, 3);
+      ctx.globalAlpha = ease;
+      ctx.fillStyle = p.color;
+      ctx.font = `bold ${p.size}px Arial, "Noto Sans", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const float = (1 - ease) * 20;
+      ctx.fillText(p.text, W/2 + p.x, H/2 + p.y - float);
+
+      if (local >= 1 && Math.random() < 0.003) {
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = '#ffc8c8';
+        ctx.fillText(p.text, W/2 + p.x, H/2 + p.y);
+      }
+    });
+
+    ctx.globalAlpha = 1;
+    animationId = requestAnimationFrame(draw);
+  }
+
+  nameInput.focus();
+</script>
+</body>
+</html>
